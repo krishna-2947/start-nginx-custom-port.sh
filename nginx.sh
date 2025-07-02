@@ -1,22 +1,36 @@
 #!/bin/bash
 
-# Set your custom port (not 80)
-CUSTOM_PORT=8085
+# This script installs and runs NGINX on port 80 and shows real-time logs
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    echo "Docker not found. Please install Docker first."
-    exit 1
+# Check for root permissions
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root: sudo $0"
+  exit 1
 fi
 
-# Pull the latest nginx image
-echo "Pulling the latest NGINX image..."
-docker pull nginx:latest
+# Update package list
+echo "Updating package list..."
+apt update
 
-# Run nginx container on the custom port
-echo "Running NGINX on port $CUSTOM_PORT..."
-docker run -d --name nginx-webserver -p $CUSTOM_PORT:80 nginx:latest
+# Install nginx
+echo "Installing NGINX..."
+apt install -y nginx
 
-# Show running container
-echo "NGINX is now running on http://<your-ip>:$CUSTOM_PORT"
-docker ps | grep nginx
+# Enable and start nginx service
+echo "Enabling and starting NGINX..."
+systemctl enable nginx
+systemctl restart nginx
+
+# Confirm status
+echo "Checking NGINX status..."
+systemctl status nginx --no-pager
+
+# Show IP to access
+echo
+echo "✅ NGINX is running. You can access it via:"
+echo "   → http://$(hostname -I | awk '{print $1}')"
+echo
+
+# Show real-time access log
+echo "📜 Showing real-time NGINX access log (press Ctrl+C to stop)..."
+tail -f /var/log/nginx/access.log
